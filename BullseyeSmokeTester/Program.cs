@@ -77,6 +77,24 @@ namespace BullseyeSmokeTester
                     }
                 });
 
+            Target(
+                "fail2",
+                ForEach(30, 20, 10),
+                async delay =>
+                {
+                    await Task.Delay(delay);
+
+                    switch (delay)
+                    {
+                        case 10:
+                            throw new Exception("bad");
+                        case 20:
+                            throw new Exception("ugly");
+                        default:
+                            break;
+                    }
+                });
+
             return RunTargetsAndExitAsync(args);
         }
     }

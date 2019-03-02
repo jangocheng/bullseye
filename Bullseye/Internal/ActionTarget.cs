@@ -12,7 +12,7 @@ namespace Bullseye.Internal
         public ActionTarget(string name, IEnumerable<string> dependencies, Func<Task> action)
             : base(name, dependencies) => this.action = action;
 
-        public override async Task RunAsync(bool dryRun, bool parallel, Logger log, Func<Exception, bool> messageOnly)
+        public override async Task<TimeSpan?> RunAsync(bool dryRun, bool parallel, Logger log, Func<Exception, bool> messageOnly)
         {
             await log.Starting(this.Name).ConfigureAwait(false);
 
@@ -31,12 +31,15 @@ namespace Bullseye.Internal
                         await log.Error(this.Name, ex).ConfigureAwait(false);
                     }
 
+                    stopWatch.Stop();
                     await log.Failed(this.Name, ex, stopWatch.Elapsed.TotalMilliseconds).ConfigureAwait(false);
-                    throw new TargetFailedException(ex);
+                    throw new TargetFailedException(stopWatch.Elapsed, ex);
                 }
             }
 
+            stopWatch.Stop();
             await log.Succeeded(this.Name, stopWatch.Elapsed.TotalMilliseconds).ConfigureAwait(false);
+            return stopWatch.Elapsed;
         }
     }
 }

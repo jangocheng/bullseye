@@ -70,6 +70,22 @@ namespace Bullseye.Internal
         public Task Running(List<string> targets) =>
             this.writer.WriteLineAsync(Message(p.Starting, $"Starting...", targets, null));
 
+        public async Task Summary(IReadOnlyDictionary<string, Task<TimeSpan?>> targetsRan)
+        {
+            var maxTargetLength = (int)Math.Round((double)Math.Max(6, targetsRan.Any() ? targetsRan.Max(i => i.Key.Length) : default) / 2, MidpointRounding.AwayFromZero) * 2;
+
+            await this.writer.WriteLineAsync($"{GetPrefix()}{p.Symbol}{"".PadRight(maxTargetLength, '─')}──────────────────────────────{p.Default}").ConfigureAwait(false);
+            await this.writer.WriteLineAsync($"{GetPrefix()}{p.Label}{"Target".Pad(maxTargetLength)}{p.Default}  {p.Label}  Result  {p.Default}  {p.Label}    Duration    {p.Default}").ConfigureAwait(false);
+            await this.writer.WriteLineAsync($"{GetPrefix()}{p.Symbol}{"".PadRight(maxTargetLength, '─')}  ──────────  ────────────────{p.Default}").ConfigureAwait(false);
+
+            foreach (var item in targetsRan.OrderBy(i => i.Value.IsFaulted ? (i.Value.Exception.InnerException as TargetFailedException)?.Duration : i.Value.Result))
+            {
+                await this.writer.WriteLineAsync($"{GetPrefix()}{p.Target}{item.Key.PadRight(maxTargetLength)}  {(item.Value.IsFaulted ? $"{p.Failed}Failed!     {p.Timing}{(item.Value.Exception.InnerException as TargetFailedException)?.Duration}{p.Default}" : $"{p.Succeeded}Succeeded   {p.Timing}{item.Value.Result}{p.Default}")}").ConfigureAwait(false);
+            }
+
+            await this.writer.WriteLineAsync($"{GetPrefix()}{p.Symbol}{"".PadRight(maxTargetLength, '─')}──────────────────────────────{p.Default}").ConfigureAwait(false);
+        }
+
         public Task Failed(List<string> targets, double elapsedMilliseconds) =>
             this.writer.WriteLineAsync(Message(p.Failed, $"Failed!", targets, elapsedMilliseconds));
 

@@ -16,6 +16,7 @@ namespace Bullseye.Internal
         {
             await log.Running(names).ConfigureAwait(false);
             var stopWatch = Stopwatch.StartNew();
+            var targetsRan = new ConcurrentDictionary<string, Task<TimeSpan?>>();
 
             try
             {
@@ -27,7 +28,6 @@ namespace Bullseye.Internal
                 this.ValidateTargetGraphIsCycleFree();
                 this.Validate(names);
 
-                var targetsRan = new ConcurrentDictionary<string, Task>();
                 if (parallel)
                 {
                     var tasks = names.Select(name => this.RunAsync(name, names, skipDependencies, dryRun, true, targetsRan, log, messageOnly, new Stack<string>()));
@@ -43,14 +43,16 @@ namespace Bullseye.Internal
             }
             catch (Exception)
             {
+                await log.Summary(targetsRan).ConfigureAwait(false);
                 await log.Failed(names, stopWatch.Elapsed.TotalMilliseconds).ConfigureAwait(false);
                 throw;
             }
 
+            await log.Summary(targetsRan).ConfigureAwait(false);
             await log.Succeeded(names, stopWatch.Elapsed.TotalMilliseconds).ConfigureAwait(false);
         }
 
-        private async Task RunAsync(string name, List<string> explicitTargets, bool skipDependencies, bool dryRun, bool parallel, ConcurrentDictionary<string, Task> targetsRan, Logger log, Func<Exception, bool> messageOnly, Stack<string> targets)
+        private async Task RunAsync(string name, List<string> explicitTargets, bool skipDependencies, bool dryRun, bool parallel, ConcurrentDictionary<string, Task<TimeSpan?>> targetsRan, Logger log, Func<Exception, bool> messageOnly, Stack<string> targets)
         {
             targets.Push(name);
 

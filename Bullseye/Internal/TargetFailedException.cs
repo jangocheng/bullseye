@@ -6,8 +6,9 @@ namespace Bullseye.Internal
     public class TargetFailedException : Exception
 #pragma warning restore CA1032 // Implement standard exception constructors
     {
-        public TargetFailedException(Exception innerException) : base(default, innerException)
-        {
-        }
+        public TargetFailedException(TimeSpan duration, Exception innerException) : base(default, innerException) =>
+            this.Duration = duration;
+
+        public TimeSpan Duration { get; }
     }
 }

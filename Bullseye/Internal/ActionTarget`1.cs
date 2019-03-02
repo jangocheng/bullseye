@@ -29,13 +29,13 @@ namespace Bullseye.Internal
             }
         }
 
-        public override async Task RunAsync(bool dryRun, bool parallel, Logger log, Func<Exception, bool> messageOnly)
+        public override async Task<TimeSpan?> RunAsync(bool dryRun, bool parallel, Logger log, Func<Exception, bool> messageOnly)
         {
             var inputsList = this.inputs.ToList();
             if (inputsList.Count == 0)
             {
                 await log.NoInputs(this.Name).ConfigureAwait(false);
-                return;
+                return default;
             }
 
             await log.Starting(this.Name).ConfigureAwait(false);
@@ -62,7 +62,9 @@ namespace Bullseye.Internal
                 throw;
             }
 
+            stopWatch.Stop();
             await log.Succeeded(this.Name, stopWatch.Elapsed.TotalMilliseconds).ConfigureAwait(false);
+            return stopWatch.Elapsed;
         }
 
         private async Task InvokeAsync(TInput input, bool dryRun, Logger log, Func<Exception, bool> messageOnly)
@@ -83,8 +85,9 @@ namespace Bullseye.Internal
                         await log.Error(this.Name, input, ex).ConfigureAwait(false);
                     }
 
+                    stopWatch.Stop();
                     await log.Failed(this.Name, input, ex, stopWatch.Elapsed.TotalMilliseconds).ConfigureAwait(false);
-                    throw new TargetFailedException(ex);
+                    throw new TargetFailedException(stopWatch.Elapsed, ex);
                 }
             }
 
