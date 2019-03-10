@@ -72,17 +72,19 @@ namespace Bullseye.Internal
 
         public async Task Summary(IReadOnlyDictionary<string, Task<TimeSpan?>> targetsRan)
         {
-            var maxTargetLength = (int)Math.Round((double)Math.Max(6, targetsRan.Any() ? targetsRan.Max(i => i.Key.Length) : default) / 2, MidpointRounding.AwayFromZero) * 2;
+            var maxTargetLength = Math.Max(6, targetsRan.Any() ? targetsRan.Max(i => i.Key.Length) : default);
 
             await this.writer.WriteLineAsync($"{GetPrefix()}{p.Symbol}{"".PadRight(maxTargetLength, '─')}──────────────────────────────{p.Default}").ConfigureAwait(false);
-            await this.writer.WriteLineAsync($"{GetPrefix()}{p.Label}{"Target".Pad(maxTargetLength)}{p.Default}  {p.Label}  Result  {p.Default}  {p.Label}    Duration    {p.Default}").ConfigureAwait(false);
+            await this.writer.WriteLineAsync($"{GetPrefix()}{p.Label}{"Target".PadRight(maxTargetLength)}{p.Default}  {p.Label}Result    {p.Default}  {p.Label}Duration        {p.Default}").ConfigureAwait(false);
             await this.writer.WriteLineAsync($"{GetPrefix()}{p.Symbol}{"".PadRight(maxTargetLength, '─')}  ──────────  ────────────────{p.Default}").ConfigureAwait(false);
 
             foreach (var item in targetsRan.OrderBy(i => i.Value.IsFaulted ? (i.Value.Exception.InnerException as TargetFailedException)?.Duration : i.Value.Result))
             {
-                await this.writer.WriteLineAsync($"{GetPrefix()}{p.Target}{item.Key.PadRight(maxTargetLength)}  {(item.Value.IsFaulted ? $"{p.Failed}Failed!     {p.Timing}{(item.Value.Exception.InnerException as TargetFailedException)?.Duration}{p.Default}" : $"{p.Succeeded}Succeeded   {p.Timing}{item.Value.Result}{p.Default}")}").ConfigureAwait(false);
+                await this.writer.WriteLineAsync($"{GetPrefix()}{p.Target}{item.Key.PadRight(maxTargetLength)}  {(item.Value.IsFaulted ? $"{p.Failed}Failed!     " : $"{p.Succeeded}Succeeded   ")}{p.Timing}{item.Value.GetDuration()}{p.Default}").ConfigureAwait(false);
             }
 
+            await this.writer.WriteLineAsync($"{GetPrefix()}{p.Symbol}{"".PadRight(maxTargetLength, '─')}  ──────────  ────────────────{p.Default}").ConfigureAwait(false);
+            await this.writer.WriteLineAsync($"{GetPrefix()}{p.Label}{"Total".PadRight(maxTargetLength)}  {(targetsRan.Any(t => t.Value.IsFaulted) ? $"{p.Failed}Failed!     " : $"{p.Succeeded}Succeeded   ")}{p.Timing}{targetsRan.Aggregate(default(TimeSpan), (a, t) => a + t.Value.GetDuration() ?? default)}{p.Default}").ConfigureAwait(false);
             await this.writer.WriteLineAsync($"{GetPrefix()}{p.Symbol}{"".PadRight(maxTargetLength, '─')}──────────────────────────────{p.Default}").ConfigureAwait(false);
         }
 

@@ -6,9 +6,6 @@ namespace Bullseye.Internal
 
     public static class StringExtensions
     {
-        public static string Pad(this string value, int totalWidth) =>
-            value == null ? null : value.PadLeft((totalWidth - value.Length) / 2 + value.Length).PadRight(totalWidth);
-
         public static string Spaced(this IEnumerable<string> strings) => string.Join(" ", strings);
 
         public static (List<string>, Options) Parse(this IEnumerable<string> args)
